@@ -1,5 +1,15 @@
 # Setup & deployment
 
+## Fastest path (no command line, ~15 minutes)
+1. **Supabase** (supabase.com, free plan) → New project → region *Mumbai* → set a database password.
+2. **Database → Extensions** → enable `pg_cron`.
+3. **SQL Editor → New query** → paste the whole of `supabase/setup.sql` → **Run** (once).
+4. **Authentication → Sign In / Providers → Email**: for a quick start turn **"Confirm email" off** (the free built-in mailer sends only a few e-mails per hour; add your own SMTP later and turn it back on).
+5. **Project Settings → API**: copy the **Project URL** and the **anon public** key. Never use the `service_role` key in the website.
+6. **Vercel** (vercel.com, sign in with GitHub) → **Add New → Project** → import `dotscube/dotscube-agency-os` → framework *Vite* → add environment variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` → **Deploy**.
+7. Back in Supabase → **Authentication → URL Configuration** → set **Site URL** to your Vercel URL (e.g. `https://dotscube-agency-os.vercel.app`).
+8. Open the Vercel URL → **Create an account** → set up the agency. You are Super Admin.
+
 ## 1. Create the Supabase project
 1. Create a project at supabase.com (region close to India, e.g. Mumbai `ap-south-1`).
 2. **Database → Extensions:** enable `pg_cron` *before* running migrations (the due/overdue reminder job schedules itself if it's present).
