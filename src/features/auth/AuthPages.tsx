@@ -85,7 +85,7 @@ const orgSchema = z.object({
 })
 
 export function OnboardingPage() {
-  const { profile, refresh, signOut, session } = useAuth()
+  const { profile, refresh, signOut, session, account } = useAuth()
   const form = useForm<z.infer<typeof orgSchema>>({ resolver: zodResolver(orgSchema), defaultValues: { full_name: profile?.full_name ?? '' } })
   if (!session) return <Navigate to="/login" replace />
   if (profile?.org_id) return <Navigate to="/" replace />
@@ -96,8 +96,16 @@ export function OnboardingPage() {
     await refresh()
   })
   const { errors, isSubmitting } = form.formState
+  const mode = account?.platform_admin ? 'open' : account?.org_creation ?? 'open'
+  if (mode === 'closed') return (
+    <Shell title="Your account isn't linked to an agency yet" subtitle="New agencies can't be created here right now.">
+      <p className="text-sm text-muted-foreground">If your agency invited you, ask them to send the invitation to <strong>{profile?.email}</strong>, then sign out and sign in again.</p>
+      <Button variant="link" className="mt-3" onClick={signOut}>Sign out ({profile?.email})</Button>
+    </Shell>
+  )
   return (
     <Shell title="Set up your agency" subtitle="If you were invited, ask your admin to resend the invitation to this email instead.">
+      {mode === 'invite_only' && <p className="mb-4 rounded-md bg-muted p-3 text-sm">Creating an agency is by invitation. This works only if the platform owner invited <strong>{profile?.email}</strong>.</p>}
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         <Field label="Your name" error={errors.full_name?.message}>{(p) => <Input {...p} {...form.register('full_name')} />}</Field>
         <Field label="Agency name" error={errors.name?.message}>{(p) => <Input {...p} placeholder="Dotscube Digital" {...form.register('name')} />}</Field>

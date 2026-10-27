@@ -97,3 +97,12 @@ describe('Phase 5 navigation', () => {
     expect(NAV_ITEMS.find((n) => n.to === '/invoices')!.audience).toContain('client')
   })
 })
+
+describe('Platform navigation', () => {
+  it('shows Platform only to platform admins', () => {
+    const all = new Set(['org.manage', 'roles.manage'])
+    expect(visibleNav(all, 'internal', true).map((n) => n.to)).not.toContain('/platform')
+    expect(visibleNav(all, 'internal', true, true).map((n) => n.to)).toContain('/platform')
+    expect(visibleNav(new Set(), 'client', false, true).map((n) => n.to)).not.toContain('/platform')
+  })
+})

@@ -37,6 +37,8 @@ export interface NavItem {
   anyOf?: Permission[]
   /** shown to everyone internal who has an employee record */
   employeeOnly?: boolean
+  /** only for platform owners (managing all agencies) */
+  platformOnly?: boolean
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -59,11 +61,13 @@ export const NAV_ITEMS: NavItem[] = [
   // every internal user can reach Settings (e.g. notification preferences); tabs inside are permission-filtered
   { to: '/templates', label: 'Templates', icon: 'LayoutTemplate', audience: ['internal'], anyOf: ['projects.manage_templates'] },
   { to: '/settings', label: 'Settings', icon: 'Settings', audience: ['internal'] },
+  { to: '/platform', label: 'Platform', icon: 'ShieldCheck', audience: ['internal'], platformOnly: true },
 ]
 
-export function visibleNav(perms: PermissionSet, audience: Audience, hasEmployee: boolean): NavItem[] {
+export function visibleNav(perms: PermissionSet, audience: Audience, hasEmployee: boolean, platformAdmin = false): NavItem[] {
   return NAV_ITEMS.filter((item) =>
     item.audience.includes(audience) &&
+    (!item.platformOnly || platformAdmin) &&
     (!item.employeeOnly || hasEmployee) &&
     (audience === 'client' || can(perms, item.anyOf, 'any')))
 }

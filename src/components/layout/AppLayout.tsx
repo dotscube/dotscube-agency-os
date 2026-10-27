@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Bell, Building2, CalendarDays, CalendarRange, ChartColumn, CheckSquare, Clock, FolderKanban, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Menu, ReceiptIndianRupee, Search,
-  Settings, Timer, UserPlus, Users, Wallet, X } from 'lucide-react'
+  Settings, ShieldCheck, Timer, UserPlus, Users, Wallet, X } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { visibleNav } from '@/lib/permissions'
 import { supabase } from '@/lib/supabase'
@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import { Avatar, Button, Input } from '@/components/ui'
 
 const ICONS = { LayoutDashboard, CheckSquare, FolderKanban, Building2, Users, Clock, CalendarDays, Bell, Settings, CalendarRange, Timer, Megaphone,
-  ChartColumn, LayoutTemplate, ReceiptIndianRupee, Wallet, UserPlus } as const
+  ChartColumn, LayoutTemplate, ReceiptIndianRupee, Wallet, UserPlus, ShieldCheck } as const
 
 function UnreadBadge() {
   const { session } = useAuth()
@@ -87,11 +87,11 @@ function GlobalSearch() {
 }
 
 export function AppLayout() {
-  const { perms, audience, employee, profile, org, signOut } = useAuth()
+  const { perms, audience, employee, profile, org, signOut, platformAdmin } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
   useEffect(() => setMobileOpen(false), [location.pathname])
-  const nav = visibleNav(perms, audience, Boolean(employee))
+  const nav = visibleNav(perms, audience, Boolean(employee), platformAdmin)
 
   const sidebar = (
     <nav aria-label="Main" className="flex h-full flex-col">

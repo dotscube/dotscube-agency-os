@@ -33,15 +33,18 @@ const Payslip = lazy(() => import('@/features/payroll/PayslipPage'))
 const Recruitment = lazy(() => import('@/features/recruitment/RecruitmentPage'))
 const Opening = lazy(() => import('@/features/recruitment/OpeningPage'))
 const Candidate = lazy(() => import('@/features/recruitment/CandidatePage'))
+const Platform = lazy(() => import('@/features/platform/PlatformPage'))
 const Notifications = lazy(() => import('@/features/notifications/NotificationsPage'))
 const Settings = lazy(() => import('@/features/settings/SettingsPage'))
 
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { session, profile, loading, error } = useAuth()
+  const { session, profile, loading, error, account, signOut } = useAuth()
   if (loading) return <Spinner label="Loading your workspace" />
   if (!session) return <Navigate to="/login" replace />
   if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />
   if (!profile?.org_id) return <Navigate to="/onboarding" replace />
+  if (account?.org_status === 'suspended') return <EmptyState title="Your agency's account is suspended"
+    description="Access is paused by the platform owner. Contact Dotscube to restore it." action={<button className="text-sm text-primary underline" onClick={signOut}>Sign out</button>} />
   if (!profile.is_active) return <EmptyState title="Your account is deactivated" description="Contact your administrator." />
   return <>{children}</>
 }
@@ -66,6 +69,12 @@ function InvoicesGuard({ children }: { children: ReactNode }) {
   const auth = useAuth()
   if (auth.audience === 'client') return <>{children}</>
   return <Guard internal anyOf={['invoices.view', 'invoices.manage']}>{children}</Guard>
+}
+
+function PlatformGuard({ children }: { children: ReactNode }) {
+  const { platformAdmin } = useAuth()
+  if (!platformAdmin) return <EmptyState title="You don't have access to this page" />
+  return <>{children}</>
 }
 
 function ConfigMissing() {
@@ -113,6 +122,7 @@ export default function App() {
               <Route path="employees/:id" element={page(<Guard internal><EmployeeDetail /></Guard>)} />
               <Route path="attendance" element={page(<Guard internal employee><Attendance /></Guard>)} />
               <Route path="leave" element={page(<Guard internal employee><Leave /></Guard>)} />
+              <Route path="platform" element={page(<PlatformGuard><Platform /></PlatformGuard>)} />
               <Route path="notifications" element={page(<Notifications />)} />
               <Route path="settings" element={page(<Guard internal><Settings /></Guard>)} />
               <Route path="*" element={<EmptyState title="Page not found" />} />

@@ -22,6 +22,13 @@ If your project already ran Phase 4 (`upgrade_phase4.sql`):
 2. Deploy the new frontend (push to GitHub; Vercel redeploys).
 3. **Invoices → Billing settings**: enter your legal name, GSTIN, bank details and invoice prefix before issuing the first invoice.
 
+## Platform admin (managing every agency)
+`supabase/upgrade_platform.sql` (run once after Phase 5) adds the **Platform** menu. The founder of the first agency on the installation becomes platform admin; on a brand-new installation it is whoever creates the first agency.
+- **Platform → Agencies**: every agency with its founder, users, usage and last activity; open one to see its members, set a plan and user limit, keep private notes, or **suspend** it (everyone in it, including its clients, loses access immediately; data is kept; reactivate any time). Your own agency can't be suspended.
+- **Platform → Sign-ups & admins**: choose who may create a new agency (*anyone*, *only people I invite*, or *nobody*), the default plan and user limit, invite agency founders, and add or remove other platform admins.
+- Platform admins see summaries and member lists only; they still can't read another agency's clients, employees, salaries or invoices.
+- To add the first platform admin by hand: SQL Editor → `insert into public.platform_admins(user_id) select id from auth.users where email = 'you@example.com';`
+
 ## E-mail (notifications, invoices, payment reminders, offer letters)
 E-mails are queued in the database and sent by the `send-emails` Edge Function through [Resend](https://resend.com). Nothing is queued until you switch it on.
 1. **Resend**: create an account, add and verify your domain (DNS records), create an API key.

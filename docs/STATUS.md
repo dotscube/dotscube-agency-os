@@ -2,6 +2,15 @@
 
 Scope delivered: **Phase 1 (plan), Phase 2 (foundation), Phase 3 (MVP), Phase 4 (agency operations) and Phase 5 (finance & people)**. Phase 6 is not started.
 
+## Platform admin (27 Oct 2026)
+| Feature | Status | Notes |
+|---|---|---|
+| Platform console | ✅ Done | **Platform** menu for platform admins only (separate `platform_admins` table no agency role or API can write). All agencies with founder, users vs limit, clients/projects/invoices, last activity, plan, status; member list with roles; private notes. |
+| Suspension | ✅ Done | Suspending an agency makes its users resolve to no organization (`app.org_id`, `has_perm`, `is_internal`, `client_id`, `my_permissions`), so every policy and function stops serving them; they see a "suspended" screen. The platform's own agency can't be suspended. Audited. |
+| Who may create agencies | ✅ Done | Open / invitation-only (per-e-mail invites carrying plan and user limit) / closed; enforced inside `create_organization`. |
+| Plans & user limits | ✅ Done | Plan label and max users per agency (default for new agencies); the limit counts active users + open invitations and is enforced on invitations. |
+| Verified | ✅ | 39 database tests (456 total pass), unit tests 51/51, browser test `scripts/e2e/platform-e2e.mjs` 27/27 (console, limit, suspend → suspended screen → reactivate, other Super Admin blocked, invite-only onboarding, phone width); Phase 5 browser test still 66/66. |
+
 ## Phase 5 — finance & people (27 Oct 2026)
 
 | Feature | Status | Notes |

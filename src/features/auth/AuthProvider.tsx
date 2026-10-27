@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { queryClient } from '@/lib/query'
 import { can as canFn, type Audience, type Permission, type PermissionSet } from '@/lib/permissions'
-import type { Employee, Organization, Profile } from '@/lib/types'
+import type { AccountState, Employee, Organization, Profile } from '@/lib/types'
 
 interface AuthState {
   session: Session | null
@@ -11,6 +11,8 @@ interface AuthState {
   org: Organization | null
   employee: Employee | null
   perms: PermissionSet
+  account: AccountState | null
+  platformAdmin: boolean
   audience: Audience
   loading: boolean
   error: string | null
@@ -27,19 +29,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [org, setOrg] = useState<Organization | null>(null)
   const [employee, setEmployee] = useState<Employee | null>(null)
   const [perms, setPerms] = useState<PermissionSet>(new Set())
+  const [account, setAccount] = useState<AccountState | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async (s: Session | null) => {
     setSession(s)
-    if (!s) { setProfile(null); setOrg(null); setEmployee(null); setPerms(new Set()); setLoading(false); return }
+    if (!s) { setProfile(null); setOrg(null); setEmployee(null); setPerms(new Set()); setAccount(null); setLoading(false); return }
     try {
       const uid = s.user.id
-      const [p, pr, e] = await Promise.all([
+      const [p, pr, e, acct] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),
         supabase.rpc('my_permissions'),
         supabase.from('employee_profiles').select('*').eq('profile_id', uid).maybeSingle(),
+        supabase.rpc('my_account_state'),
       ])
+      setAccount((acct.data as AccountState | null) ?? null)
       if (p.error) throw p.error
       setProfile(p.data as Profile | null)
       setPerms(new Set(((pr.data as string[] | null) ?? []).map((x) => (typeof x === 'string' ? x : Object.values(x as object)[0] as string))))
@@ -67,12 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [load])
 
   const value = useMemo<AuthState>(() => ({
-    session, profile, org, employee, perms, loading, error,
+    session, profile, org, employee, perms, loading, error, account, platformAdmin: Boolean(account?.platform_admin),
     audience: profile?.client_id ? 'client' : 'internal',
     can: (p, mode) => canFn(perms, p, mode),
     refresh: async () => { const { data } = await supabase.auth.getSession(); await load(data.session) },
     signOut: async () => { await supabase.auth.signOut() },
-  }), [session, profile, org, employee, perms, loading, error, load])
+  }), [session, profile, org, employee, perms, loading, error, account, load])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

@@ -223,3 +223,18 @@ export interface Offer {
   offer_date: string; valid_until: string | null; status: 'draft' | 'sent' | 'accepted' | 'declined' | 'withdrawn'; letter_text: string | null
   decided_at: string | null; created_at: string
 }
+
+// ---------- Platform admin ----------
+export interface AccountState { platform_admin: boolean; org_status: 'active' | 'suspended' | null; org_creation: 'open' | 'invite_only' | 'closed' }
+export interface PlatformAgency {
+  id: string; name: string; slug: string; status: 'active' | 'suspended'; plan: string; max_users: number | null; created_at: string
+  suspended_at: string | null; suspended_reason: string | null; platform_notes: string | null; founder: { name: string; email: string } | null
+  staff_users: number; client_users: number; employees: number; clients: number; projects: number; invoices: number
+  last_activity: string | null; is_platform_home: boolean
+}
+export interface PlatformMember { id: string; full_name: string; email: string; is_active: boolean; is_client: boolean; created_at: string; roles: string | null }
+export interface PlatformInvite { id: string; email: string; plan: string | null; max_users: number | null; note: string | null; created_at: string; expires_at: string; used_at: string | null; used_by_org: string | null }
+export interface PlatformSettings {
+  settings: { org_creation: AccountState['org_creation']; default_plan: string; default_max_users: number | null }
+  invites: PlatformInvite[]; admins: { user_id: string; name: string; email: string }[]
+}
