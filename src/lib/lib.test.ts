@@ -18,7 +18,7 @@ describe('permissions', () => {
   })
   it('filters navigation by audience, permission and employee record', () => {
     const labels = (s: Set<string>, a: 'internal' | 'client', e: boolean) => visibleNav(s, a, e).map((n) => n.label)
-    expect(labels(new Set(), 'client', false)).toEqual(['Dashboard', 'Projects', 'Notifications'])
+    expect(labels(new Set(), 'client', false)).toEqual(['Dashboard', 'Projects', 'Content', 'Campaigns', 'Notifications'])
     expect(labels(new Set(), 'internal', false)).not.toContain('Clients')
     expect(labels(new Set(), 'internal', false)).not.toContain('Attendance')
     expect(labels(new Set(['clients.view']), 'internal', true)).toEqual(expect.arrayContaining(['Clients', 'Attendance', 'Leave', 'Settings']))

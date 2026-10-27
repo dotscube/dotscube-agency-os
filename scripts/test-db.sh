@@ -9,4 +9,5 @@ $P -d postgres -c "drop database if exists $DB" -c "create database $DB" >/dev/n
 $P -d $DB -f supabase/tests/00_supabase_shim.sql >/dev/null 2>&1
 for f in supabase/migrations/*.sql; do $P -d $DB -f "$f" >/dev/null 2>/tmp/mig.err || { cat /tmp/mig.err; exit 1; }; done
 $P -d $DB -f supabase/tests/01_harness.sql >/dev/null
-$P -d $DB -f supabase/tests/10_security_and_rules.sql
+for f in supabase/tests/[1-8]*.sql; do $P -d $DB -f "$f" || exit 1; done
+$P -d $DB -f supabase/tests/99_report.sql

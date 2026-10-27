@@ -10,6 +10,12 @@
 7. Back in Supabase → **Authentication → URL Configuration** → set **Site URL** to your Vercel URL (e.g. `https://dotscube-agency-os.vercel.app`).
 8. Open the Vercel URL → **Create an account** → set up the agency. You are Super Admin.
 
+## Upgrading an existing project to Phase 4
+If your project already ran `setup.sql` from Phase 1–3 (the live Dotscube project did):
+1. **SQL Editor → New query** → paste the whole of `supabase/upgrade_phase4.sql` → **Run** (once). It runs in a single transaction, so it either fully applies or changes nothing.
+2. Then deploy the new frontend (push to GitHub; Vercel redeploys automatically).
+Do it in this order: the new screens need the new tables.
+
 ## 1. Create the Supabase project
 1. Create a project at supabase.com (region close to India, e.g. Mumbai `ap-south-1`).
 2. **Database → Extensions:** enable `pg_cron` *before* running migrations (the due/overdue reminder job schedules itself if it's present).

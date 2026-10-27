@@ -17,9 +17,10 @@ import { DataTable } from '@/components/DataTable'
 import { Avatar, Badge, Button, Card, CardBody, CardHeader, DescriptionList, EmptyState, ErrorState, Input, PageHeader, Select, Spinner,
   StatusBadge, Tabs } from '@/components/ui'
 import { CreateTaskDialog, isOverdue, KanbanBoard, StatusPill, TASK_SELECT, type TaskWithAssignees } from '@/features/tasks/shared'
+import { ProjectTime, ProjectTimeline, RecurringRules } from './projectExtras'
 import { ProjectFormFields, projectSchema, toProjectRow, type ProjectFormIn, type ProjectFormOut } from './ProjectsPage'
 
-type Tab = 'board' | 'list' | 'milestones' | 'team' | 'details'
+type Tab = 'board' | 'list' | 'timeline' | 'milestones' | 'recurring' | 'time' | 'team' | 'details'
 
 function Milestones({ project, canManage }: { project: ProjectOverview; canManage: boolean }) {
   const { audience } = useAuth()
@@ -112,8 +113,9 @@ export default function ProjectDetailPage() {
     toast.success('Project deleted'); qc.invalidateQueries({ queryKey: ['projects'] }); navigate('/projects')
   }
   const statusOf = (sid: string) => statuses?.find((s) => s.id === sid)
-  const tabs: { value: Tab; label: string }[] = [{ value: 'board', label: 'Board' }, { value: 'list', label: 'List' }, { value: 'milestones', label: 'Milestones' }]
-  if (audience === 'internal') tabs.push({ value: 'team', label: 'Team' }, { value: 'details', label: 'Details' })
+  const tabs: { value: Tab; label: string }[] = [{ value: 'board', label: 'Board' }, { value: 'list', label: 'List' }, { value: 'timeline', label: 'Timeline' },
+    { value: 'milestones', label: 'Milestones' }]
+  if (audience === 'internal') tabs.push({ value: 'recurring', label: 'Recurring' }, { value: 'time', label: 'Time' }, { value: 'team', label: 'Team' }, { value: 'details', label: 'Details' })
 
   return (
     <div className="space-y-6">
@@ -139,7 +141,10 @@ export default function ProjectDetailPage() {
         { key: 'd', header: 'Due', render: (t) => <span className={isOverdue(t, statusOf(t.status_id)?.category) ? 'font-medium text-destructive' : ''}>{fmtDate(t.due_date)}</span> },
         { key: 'p', header: 'Priority', render: (t) => <StatusBadge value={t.priority} /> },
       ]} /></Card>}
+      {tab === 'timeline' && <ProjectTimeline project={p} tasks={tasks.data} statuses={statuses} />}
       {tab === 'milestones' && <Milestones project={p} canManage={canManage} />}
+      {tab === 'recurring' && <RecurringRules project={p} canManage={canManage} />}
+      {tab === 'time' && <ProjectTime projectId={p.id} />}
       {tab === 'team' && <Team project={p} canManage={canManage} />}
       {tab === 'details' && (editing ? (
         <Card><CardBody><form onSubmit={save} className="space-y-4"><ProjectFormFields form={form} excludeId={p.id} />

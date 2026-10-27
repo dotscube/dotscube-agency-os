@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Download, Plus } from 'lucide-react'
+import { Download, LayoutTemplate, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { ilikeTerm, unwrap, unwrapPage } from '@/lib/query'
 import { friendlyError } from '@/lib/errors'
@@ -15,6 +15,7 @@ import { PRIORITIES, SERVICE_TYPES, type ProjectOverview, type ProjectStatus, se
 import { useAuth } from '@/features/auth/AuthProvider'
 import { DataTable, SearchBox, useTableState } from '@/components/DataTable'
 import { Badge, Button, Card, Dialog, Field, Input, PageHeader, Select, StatusBadge, Textarea } from '@/components/ui'
+import { FromTemplateDialog } from './templates'
 
 const STATUSES: ProjectStatus[] = ['planning', 'active', 'on_hold', 'completed', 'cancelled']
 
@@ -91,6 +92,7 @@ export default function ProjectsPage() {
   const status = t.params.get('status') ?? ''
   const risk = t.params.get('risk') === '1'
   const [open, setOpen] = useState(false)
+  const [fromTpl, setFromTpl] = useState(false)
   const { data: people } = usePeople()
   const { data: statuses } = useTaskStatuses()
   const today = new Date().toISOString().slice(0, 10)
@@ -133,6 +135,7 @@ export default function ProjectsPage() {
     <div>
       <PageHeader title="Projects" actions={audience === 'internal' && <>
         {can('projects.export') && <Button variant="outline" onClick={exportCsv}><Download />Export</Button>}
+        {can('projects.create') && <Button variant="outline" onClick={() => setFromTpl(true)}><LayoutTemplate />From template</Button>}
         {can('projects.create') && <Button onClick={() => setOpen(true)}><Plus />New project</Button>}</>} />
       <Card>
         <div className="flex flex-col gap-2 border-b p-3 sm:flex-row sm:items-center">
@@ -157,6 +160,7 @@ export default function ProjectsPage() {
           ]} />
       </Card>
       <CreateProjectDialog open={open} onClose={() => setOpen(false)} />
+      <FromTemplateDialog open={fromTpl} onClose={() => setFromTpl(false)} />
     </div>
   )
 }

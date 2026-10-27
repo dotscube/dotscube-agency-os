@@ -16,9 +16,10 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { Avatar, Badge, Button, Card, CardBody, CardHeader, DescriptionList, Dialog, EmptyState, ErrorState, Field, Input, PageHeader,
   Select, Spinner, StatusBadge, Tabs, Textarea } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
+import { EmployeeDocuments } from './EmployeeDocuments'
 import { EmployeeFormFields, employeeSchema, toEmployeeRow, type EmployeeForm } from './EmployeesPage'
 
-type Tab = 'overview' | 'private' | 'salary' | 'account'
+type Tab = 'overview' | 'private' | 'documents' | 'salary' | 'account'
 
 function EditEmployee({ emp, onDone }: { emp: Employee; onDone: () => void }) {
   const qc = useQueryClient()
@@ -216,7 +217,7 @@ export default function EmployeeDetailPage() {
   if (!emp) return <EmptyState title="Employee not found" description="It may not exist or you may not have access." />
   const isMe = me?.id === emp.id
   const tabs: { value: Tab; label: string }[] = [{ value: 'overview', label: 'Overview' }]
-  if (isMe || can('employees.view_sensitive')) tabs.push({ value: 'private', label: 'Private details' })
+  if (isMe || can('employees.view_sensitive')) tabs.push({ value: 'private', label: 'Private details' }, { value: 'documents', label: 'Documents' })
   if (isMe || can('salary.view')) tabs.push({ value: 'salary', label: 'Salary' })
   if (can('users.manage')) tabs.push({ value: 'account', label: 'Account' })
 
@@ -240,6 +241,7 @@ export default function EmployeeDetailPage() {
         </CardBody></Card>
       ))}
       {tab === 'private' && <PrivateDetails emp={emp} editable={isMe || (can('employees.view_sensitive') && can('employees.edit'))} />}
+      {tab === 'documents' && <EmployeeDocuments emp={emp} canManage={can('employees.view_sensitive') && can('employees.edit')} />}
       {tab === 'salary' && <Salary emp={emp} canEdit={can('salary.edit')} />}
       {tab === 'account' && <Account emp={emp} />}
     </div>

@@ -12,6 +12,7 @@ import { PRIORITIES, type TaskComment } from '@/lib/types'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { Avatar, Badge, Button, Card, CardBody, CardHeader, EmptyState, ErrorState, Input, Label, Select, Spinner, StatusBadge, Textarea } from '@/components/ui'
 import { CreateTaskDialog, isOverdue, StatusPill, TASK_SELECT, type TaskWithAssignees } from './shared'
+import { TaskTimeCard } from '@/features/time/TaskTimeCard'
 
 interface Attachment { id: string; file_name: string; storage_path: string; size_bytes: number | null; is_internal: boolean; uploaded_by: string | null; created_at: string }
 const MAX_BYTES = 50 * 1024 * 1024
@@ -180,6 +181,8 @@ export default function TaskDetailPage() {
               {canEdit && <label className="flex items-center gap-2"><input type="checkbox" checked={t.client_visible} onChange={(e) => update.mutate({ client_visible: e.target.checked })} />Visible to client</label>}
             </>}
           </CardBody></Card>
+
+          {internal && <TaskTimeCard taskId={t.id} orgId={t.org_id} />}
 
           {internal && <Card><CardHeader title="Blocked by" description="Must be completed first" />
             <CardBody className="space-y-2 text-sm">

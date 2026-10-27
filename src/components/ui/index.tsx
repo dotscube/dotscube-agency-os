@@ -98,6 +98,8 @@ const statusTones: Record<string, BadgeTone> = {
   active: 'green', present: 'green', approved: 'green', completed: 'green', done: 'green',
   pending: 'amber', probation: 'amber', onboarding: 'blue', planning: 'blue', in_progress: 'blue', half_day: 'amber', notice_period: 'amber',
   on_hold: 'slate', paused: 'slate', lead: 'slate', cancelled: 'slate',
+  idea: 'slate', internal_review: 'amber', client_review: 'amber', changes_requested: 'red', scheduled: 'blue', published: 'green',
+  submitted: 'amber', draft: 'slate', ended: 'slate',
   rejected: 'red', absent: 'red', short_hours: 'red', exited: 'red', churned: 'red', urgent: 'red', high: 'amber', medium: 'blue', low: 'slate',
 }
 export function StatusBadge({ value }: { value?: string | null }) {

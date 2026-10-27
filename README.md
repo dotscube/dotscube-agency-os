@@ -18,7 +18,8 @@ Apply the database with `supabase db push` (see `docs/SETUP.md`). The first pers
 | `npm run dev` / `build` / `preview` | Vite dev server, production build, preview |
 | `npm run typecheck` | Strict TypeScript check |
 | `npm test` | Unit + component tests (Vitest) |
-| `npm run test:db` | Migrations + 141 security/business-rule tests on a local PostgreSQL |
+| `npm run test:db` | Migrations + 251 security/business-rule tests on a local PostgreSQL |
+| `bash scripts/build-setup-sql.sh` | Regenerate `supabase/setup.sql` and `supabase/upgrade_phase4.sql` from the migrations |
 
 ## Layout
 ```
@@ -27,7 +28,8 @@ supabase/functions/    Edge Functions (service-role work only)
 supabase/tests/        database test suite (+ a shim emulating Supabase auth on plain Postgres)
 src/lib/               supabase client, permissions, query helpers, types, utils
 src/components/        design-system components, DataTable, layout
-src/features/          auth, dashboard, employees, attendance, leave, clients, projects, tasks, notifications, settings
+src/features/          auth, dashboard, employees, attendance, leave, clients, projects (+templates), tasks, time,
+                       content, campaigns, calendar, notifications, settings
 scripts/e2e/           local browser smoke-test stack (PostgREST proxy + Playwright)
 ```
 

@@ -93,3 +93,50 @@ export interface DashboardMetrics {
   team_workload: { name: string; open_tasks: number; overdue: number }[]
   tasks_by_status: { name: string; color: string; position: number; count: number }[]
 }
+
+// ---------- Phase 4 ----------
+export interface ProjectTemplate { id: string; org_id: string; name: string; service: ServiceType | null; description: string | null; default_duration_days: number; is_active: boolean }
+export interface TemplateTask {
+  id: string; template_id: string; title: string; description: string | null; priority: Priority; start_offset_days: number
+  duration_days: number; estimated_minutes: number | null; client_visible: boolean; position: number
+}
+export interface RecurringRule {
+  id: string; org_id: string; project_id: string; title: string; description: string | null; frequency: 'weekly' | 'monthly'
+  weekday: number | null; day_of_month: number | null; due_after_days: number; assignee_id: string | null; reviewer_id: string | null
+  priority: Priority; estimated_minutes: number | null; client_visible: boolean; start_date: string; end_date: string | null; is_active: boolean
+}
+export interface TimeEntry {
+  id: string; org_id: string; profile_id: string; task_id: string; project_id: string; entry_date: string; started_at: string | null
+  ended_at: string | null; minutes: number | null; source: 'timer' | 'manual'; note: string | null; billable: boolean; timesheet_id: string | null
+}
+export type TimesheetStatus = 'submitted' | 'approved' | 'rejected'
+export interface Timesheet {
+  id: string; profile_id: string; week_start: string; status: TimesheetStatus; total_minutes: number; submitted_at: string
+  decided_by: string | null; decided_at: string | null; decision_note: string | null
+}
+export type ContentStatus = 'idea' | 'in_progress' | 'internal_review' | 'client_review' | 'changes_requested' | 'approved' | 'scheduled' | 'published' | 'cancelled'
+export const CONTENT_STATUSES: ContentStatus[] = ['idea', 'in_progress', 'internal_review', 'client_review', 'changes_requested', 'approved', 'scheduled', 'published', 'cancelled']
+export const CONTENT_PLATFORMS = ['instagram', 'facebook', 'linkedin', 'youtube', 'x', 'google_business', 'blog', 'email', 'other'] as const
+export const CONTENT_TYPES = ['post', 'reel', 'story', 'carousel', 'video', 'short', 'blog', 'email', 'ad'] as const
+export interface ContentItem {
+  id: string; org_id: string; client_id: string; project_id: string | null; title: string; platform: (typeof CONTENT_PLATFORMS)[number]
+  content_type: (typeof CONTENT_TYPES)[number]; caption: string | null; creative_url: string | null; scheduled_at: string | null
+  status: ContentStatus; assignee_id: string | null; client_feedback: string | null; reviewed_by: string | null; reviewed_at: string | null
+  published_url: string | null; published_at: string | null; created_by: string | null; created_at: string
+}
+export type CampaignPlatform = 'google_ads' | 'meta_ads' | 'other'
+export interface Campaign {
+  id: string; client_id: string; project_id: string | null; platform: CampaignPlatform; name: string; external_id: string | null; objective: string | null
+  status: 'draft' | 'active' | 'paused' | 'ended'; start_date: string | null; end_date: string | null; monthly_budget: number | null; currency: string; client_visible: boolean
+}
+export interface CampaignSummary {
+  campaign_id: string; client_id: string; platform: CampaignPlatform; name: string; status: string; monthly_budget: number | null; currency: string
+  impressions: number; clicks: number; spend: number; conversions: number; conversion_value: number
+  ctr_pct: number | null; cpc: number | null; cpa: number | null; roas: number | null; first_date: string | null; last_date: string | null
+}
+export interface CampaignMetric { campaign_id: string; metric_date: string; impressions: number; clicks: number; spend: number; conversions: number; conversion_value: number }
+export interface CampaignImport {
+  id: string; client_id: string; platform: string; file_name: string; rows_total: number; rows_inserted: number; rows_updated: number
+  rows_skipped: number; campaigns_created: number; created_by: string | null; created_at: string
+}
+export interface EmploymentDocument { id: string; employee_id: string; doc_type: string; file_name: string; storage_path: string; uploaded_by: string | null; created_at: string }

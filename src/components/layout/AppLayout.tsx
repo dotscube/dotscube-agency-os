@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Bell, Building2, CalendarDays, CheckSquare, Clock, FolderKanban, LayoutDashboard, LogOut, Menu, Search, Settings, Users, X } from 'lucide-react'
+import { Bell, Building2, CalendarDays, CalendarRange, ChartColumn, CheckSquare, Clock, FolderKanban, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Menu, Search,
+  Settings, Timer, Users, X } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { visibleNav } from '@/lib/permissions'
 import { supabase } from '@/lib/supabase'
@@ -9,7 +10,8 @@ import { ilikeTerm } from '@/lib/query'
 import { cn } from '@/lib/utils'
 import { Avatar, Button, Input } from '@/components/ui'
 
-const ICONS = { LayoutDashboard, CheckSquare, FolderKanban, Building2, Users, Clock, CalendarDays, Bell, Settings } as const
+const ICONS = { LayoutDashboard, CheckSquare, FolderKanban, Building2, Users, Clock, CalendarDays, Bell, Settings, CalendarRange, Timer, Megaphone,
+  ChartColumn, LayoutTemplate } as const
 
 function UnreadBadge() {
   const { session } = useAuth()

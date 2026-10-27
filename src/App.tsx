@@ -21,6 +21,11 @@ const Projects = lazy(() => import('@/features/projects/ProjectsPage'))
 const ProjectDetail = lazy(() => import('@/features/projects/ProjectDetailPage'))
 const Tasks = lazy(() => import('@/features/tasks/TasksPage'))
 const TaskDetail = lazy(() => import('@/features/tasks/TaskDetailPage'))
+const Calendar = lazy(() => import('@/features/calendar/CalendarPage'))
+const Time = lazy(() => import('@/features/time/TimePage'))
+const Content = lazy(() => import('@/features/content/ContentPage'))
+const Campaigns = lazy(() => import('@/features/campaigns/CampaignsPage'))
+const Templates = lazy(() => import('@/features/projects/templates'))
 const Notifications = lazy(() => import('@/features/notifications/NotificationsPage'))
 const Settings = lazy(() => import('@/features/settings/SettingsPage'))
 
@@ -40,6 +45,13 @@ function Guard({ anyOf, internal, employee, children }: { anyOf?: Permission[]; 
   const denied = (internal && auth.audience !== 'internal') || (employee && !auth.employee) || (anyOf && !auth.can(anyOf, 'any'))
   if (denied) return <EmptyState title="You don't have access to this page" description="Ask an administrator if you need access." />
   return <>{children}</>
+}
+
+/** Clients always see their own campaigns; staff need a campaigns permission. */
+function CampaignsGuard({ children }: { children: ReactNode }) {
+  const auth = useAuth()
+  if (auth.audience === 'client') return <>{children}</>
+  return <Guard internal anyOf={['campaigns.view', 'campaigns.manage']}>{children}</Guard>
 }
 
 function ConfigMissing() {
@@ -69,6 +81,11 @@ export default function App() {
               <Route path="tasks/:id" element={page(<TaskDetail />)} />
               <Route path="projects" element={page(<Projects />)} />
               <Route path="projects/:id" element={page(<ProjectDetail />)} />
+              <Route path="calendar" element={page(<Guard internal><Calendar /></Guard>)} />
+              <Route path="time" element={page(<Guard internal><Time /></Guard>)} />
+              <Route path="content" element={page(<Content />)} />
+              <Route path="campaigns" element={page(<CampaignsGuard><Campaigns /></CampaignsGuard>)} />
+              <Route path="templates" element={page(<Guard internal anyOf={['projects.manage_templates']}><Templates /></Guard>)} />
               <Route path="clients" element={page(<Guard internal anyOf={['clients.view']}><Clients /></Guard>)} />
               <Route path="clients/:id" element={page(<Guard internal><ClientDetail /></Guard>)} />
               <Route path="employees" element={page(<Guard internal anyOf={['employees.view']}><Employees /></Guard>)} />

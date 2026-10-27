@@ -10,6 +10,8 @@ export const PERMISSIONS = [
   'projects.view_all', 'projects.create', 'projects.edit', 'projects.delete', 'projects.export',
   'tasks.view_all', 'tasks.create', 'tasks.edit_all', 'tasks.delete', 'tasks.manage_statuses',
   'announcements.manage', 'reports.view',
+  'projects.manage_templates', 'time.view_all', 'timesheets.approve', 'content.view_all', 'content.manage',
+  'campaigns.view', 'campaigns.manage',
 ] as const
 
 export type Permission = (typeof PERMISSIONS)[number]
@@ -40,12 +42,17 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: 'LayoutDashboard', audience: ['internal', 'client'] },
   { to: '/tasks', label: 'My Tasks', icon: 'CheckSquare', audience: ['internal'] },
   { to: '/projects', label: 'Projects', icon: 'FolderKanban', audience: ['internal', 'client'] },
+  { to: '/calendar', label: 'Calendar', icon: 'CalendarRange', audience: ['internal'] },
+  { to: '/time', label: 'Time', icon: 'Timer', audience: ['internal'] },
+  { to: '/content', label: 'Content', icon: 'Megaphone', audience: ['internal', 'client'] },
+  { to: '/campaigns', label: 'Campaigns', icon: 'ChartColumn', audience: ['internal', 'client'], anyOf: ['campaigns.view', 'campaigns.manage'] },
   { to: '/clients', label: 'Clients', icon: 'Building2', audience: ['internal'], anyOf: ['clients.view'] },
   { to: '/employees', label: 'Employees', icon: 'Users', audience: ['internal'], anyOf: ['employees.view'] },
   { to: '/attendance', label: 'Attendance', icon: 'Clock', audience: ['internal'], employeeOnly: true },
   { to: '/leave', label: 'Leave', icon: 'CalendarDays', audience: ['internal'], employeeOnly: true },
   { to: '/notifications', label: 'Notifications', icon: 'Bell', audience: ['internal', 'client'] },
   // every internal user can reach Settings (e.g. notification preferences); tabs inside are permission-filtered
+  { to: '/templates', label: 'Templates', icon: 'LayoutTemplate', audience: ['internal'], anyOf: ['projects.manage_templates'] },
   { to: '/settings', label: 'Settings', icon: 'Settings', audience: ['internal'] },
 ]
 
@@ -53,7 +60,7 @@ export function visibleNav(perms: PermissionSet, audience: Audience, hasEmployee
   return NAV_ITEMS.filter((item) =>
     item.audience.includes(audience) &&
     (!item.employeeOnly || hasEmployee) &&
-    can(perms, item.anyOf, 'any'))
+    (audience === 'client' || can(perms, item.anyOf, 'any')))
 }
 
 export type DashboardKind = 'admin' | 'hr' | 'manager' | 'employee' | 'client'

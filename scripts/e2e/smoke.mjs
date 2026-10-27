@@ -165,7 +165,7 @@ await as('cli@maahaul.test', async (page, go, bad) => {
   await go('/', 'client-overview')
   const t = await text(page)
   check('client: sees shared project', t.includes('Maahaul SEO Q4'))
-  check('client: nav is limited', (await page.locator('nav[aria-label="Main"] a').count()) === 3)
+  check('client: nav is limited', (await page.locator('nav[aria-label="Main"] a').count()) === 5)
   await page.getByText('Maahaul SEO Q4').click(); await page.waitForLoadState('networkidle')
   await page.getByRole('tab', { name: 'List' }).click(); await page.waitForTimeout(300)
   await page.screenshot({ path: `${OUT}/client-project.png`, fullPage: true })
