@@ -12,6 +12,7 @@ import { friendlyError } from '@/lib/errors'
 import { fmtDate, fmtMoney, titleCase } from '@/lib/utils'
 import { nameOf, useEmployeesLite, usePeople, useRoles } from '@/lib/lookups'
 import { SERVICE_TYPES, type Client, type ClientBilling, type ClientContact, type ClientNote, type ClientService, type Contract, type ProjectOverview, serviceLabel } from '@/lib/types'
+import { GST_STATES } from '@/lib/finance'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { DataTable } from '@/components/DataTable'
 import { Badge, Button, Card, CardBody, CardHeader, DescriptionList, Dialog, EmptyState, ErrorState, Field, Input, PageHeader, Select,
@@ -137,7 +138,7 @@ function Billing({ client }: { client: Client }) {
   const saveBilling = bForm.handleSubmit(async (v) => {
     const { error } = await supabase.from('client_billing').upsert({ client_id: client.id, org_id: client.org_id, billing_name: v.billing_name || null,
       billing_email: v.billing_email || null, gst_number: v.gst_number ? v.gst_number.toUpperCase() : null, billing_address: v.billing_address || null,
-      payment_terms_days: Number(v.payment_terms_days ?? 15) })
+      payment_terms_days: Number(v.payment_terms_days ?? 15), state_code: v.gst_number ? v.gst_number.slice(0, 2) : v.state_code || null })
     if (error) return toast.error(friendlyError(error))
     toast.success('Billing details saved'); qc.invalidateQueries({ queryKey: ['client_billing', client.id] })
   })
@@ -156,6 +157,8 @@ function Billing({ client }: { client: Client }) {
           <Field label="Billing name">{(p) => <Input {...p} defaultValue={billing.data?.billing_name ?? ''} {...bForm.register('billing_name')} />}</Field>
           <Field label="Billing email">{(p) => <Input type="email" {...p} defaultValue={billing.data?.billing_email ?? ''} {...bForm.register('billing_email')} />}</Field>
           <Field label="GSTIN" hint="15 characters">{(p) => <Input {...p} defaultValue={billing.data?.gst_number ?? ''} {...bForm.register('gst_number')} />}</Field>
+          <Field label="State (place of supply)" hint="Taken from the GSTIN when there is one; decides CGST+SGST or IGST">{(p) => <Select {...p} defaultValue={billing.data?.state_code ?? ''} {...bForm.register('state_code')}>
+            <option value="">—</option>{Object.entries(GST_STATES).map(([k, n]) => <option key={k} value={k}>{n} ({k})</option>)}</Select>}</Field>
           <Field label="Payment terms (days)">{(p) => <Input type="number" {...p} defaultValue={billing.data?.payment_terms_days ?? 15} {...bForm.register('payment_terms_days')} />}</Field>
           <Field label="Billing address" className="sm:col-span-2">{(p) => <Textarea {...p} defaultValue={billing.data?.billing_address ?? ''} {...bForm.register('billing_address')} />}</Field>
           <div className="sm:col-span-2"><Button type="submit" loading={bForm.formState.isSubmitting}>Save billing details</Button></div>

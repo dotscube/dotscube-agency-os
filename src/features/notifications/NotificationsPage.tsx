@@ -13,6 +13,9 @@ export const NOTIFICATION_TYPES: Record<string, string> = {
   task_approved: 'My task approved', mention: 'Mentioned in a comment', client_feedback: 'Client feedback',
   task_due_soon: 'Task due soon', task_overdue: 'Task overdue', leave_request: 'Leave requests to approve', leave_decision: 'Decision on my leave',
   attendance_correction: 'Attendance corrections to approve', attendance_correction_decision: 'Decision on my correction', contract_renewal: 'Contract renewals',
+  timesheet_submitted: 'Timesheets to approve', timesheet_decided: 'Decision on my timesheet', content_review: 'Content to review', content_reviewed: 'Client decision on content',
+  invoice_reminder: 'Invoice due / overdue reminders', payslip_ready: 'My payslip is ready',
+  interview_scheduled: 'Interviews assigned to me', interview_feedback: 'Interview feedback submitted',
 }
 
 export default function NotificationsPage() {

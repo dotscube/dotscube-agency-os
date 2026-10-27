@@ -12,6 +12,7 @@ export const PERMISSIONS = [
   'announcements.manage', 'reports.view',
   'projects.manage_templates', 'time.view_all', 'timesheets.approve', 'content.view_all', 'content.manage',
   'campaigns.view', 'campaigns.manage',
+  'invoices.view', 'invoices.manage', 'payroll.view', 'payroll.run', 'recruitment.view', 'recruitment.manage',
 ] as const
 
 export type Permission = (typeof PERMISSIONS)[number]
@@ -46,10 +47,14 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/time', label: 'Time', icon: 'Timer', audience: ['internal'] },
   { to: '/content', label: 'Content', icon: 'Megaphone', audience: ['internal', 'client'] },
   { to: '/campaigns', label: 'Campaigns', icon: 'ChartColumn', audience: ['internal', 'client'], anyOf: ['campaigns.view', 'campaigns.manage'] },
+  { to: '/invoices', label: 'Invoices', icon: 'ReceiptIndianRupee', audience: ['internal', 'client'], anyOf: ['invoices.view', 'invoices.manage'] },
   { to: '/clients', label: 'Clients', icon: 'Building2', audience: ['internal'], anyOf: ['clients.view'] },
   { to: '/employees', label: 'Employees', icon: 'Users', audience: ['internal'], anyOf: ['employees.view'] },
   { to: '/attendance', label: 'Attendance', icon: 'Clock', audience: ['internal'], employeeOnly: true },
   { to: '/leave', label: 'Leave', icon: 'CalendarDays', audience: ['internal'], employeeOnly: true },
+  // everyone with an employee record sees their own payslips here; payroll staff also see the runs
+  { to: '/payroll', label: 'Payroll', icon: 'Wallet', audience: ['internal'], employeeOnly: true },
+  { to: '/recruitment', label: 'Recruitment', icon: 'UserPlus', audience: ['internal'], anyOf: ['recruitment.view', 'recruitment.manage'] },
   { to: '/notifications', label: 'Notifications', icon: 'Bell', audience: ['internal', 'client'] },
   // every internal user can reach Settings (e.g. notification preferences); tabs inside are permission-filtered
   { to: '/templates', label: 'Templates', icon: 'LayoutTemplate', audience: ['internal'], anyOf: ['projects.manage_templates'] },

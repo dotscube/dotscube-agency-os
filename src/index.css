@@ -29,3 +29,13 @@
   :focus-visible { @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background; }
   dialog::backdrop { background: rgb(15 23 42 / 0.45); }
 }
+
+/* Printing invoices, payslips and offer letters: only the document is printed. */
+@media print {
+  @page { size: A4; margin: 12mm; }
+  html, body, #root { height: auto; background: #fff; }
+  aside, header, .no-print, [data-sonner-toaster] { display: none !important; }
+  main { overflow: visible !important; }
+  main > div { max-width: none !important; padding: 0 !important; }
+  .print-sheet { border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+}

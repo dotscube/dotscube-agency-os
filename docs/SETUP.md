@@ -16,6 +16,23 @@ If your project already ran `setup.sql` from Phase 1–3 (the live Dotscube proj
 2. Then deploy the new frontend (push to GitHub; Vercel redeploys automatically).
 Do it in this order: the new screens need the new tables.
 
+## Upgrading an existing project to Phase 5
+If your project already ran Phase 4 (`upgrade_phase4.sql`):
+1. **SQL Editor → New query** → paste the whole of `supabase/upgrade_phase5.sql` → **Run** (once, single transaction). Existing organizations get the new permissions, billing settings and e-mail settings (switched off).
+2. Deploy the new frontend (push to GitHub; Vercel redeploys).
+3. **Invoices → Billing settings**: enter your legal name, GSTIN, bank details and invoice prefix before issuing the first invoice.
+
+## E-mail (notifications, invoices, payment reminders, offer letters)
+E-mails are queued in the database and sent by the `send-emails` Edge Function through [Resend](https://resend.com). Nothing is queued until you switch it on.
+1. **Resend**: create an account, add and verify your domain (DNS records), create an API key.
+2. **Supabase → Edge Functions → Deploy a new function → Via editor**: name it `send-emails`, paste `supabase/functions/send-emails/index.ts`, deploy.
+   (CLI alternative: `supabase functions deploy send-emails`.)
+3. **Edge Functions → Secrets**: add `RESEND_API_KEY` and `EMAIL_FROM_ADDRESS` (an address on your verified domain, e.g. `notify@dotscube.com`).
+4. **Integrations → Cron → Create job**: type *Supabase Edge Function*, function `send-emails`, method POST, every 5 minutes (`*/5 * * * *`),
+   and add the header `Authorization: Bearer <service_role key>`.
+5. In the app: **Settings → E-mail** → tick *Send e-mails*, check the app address → **Save** → **Send me a test e-mail**.
+The same page shows how many e-mails are waiting, sent and failed, with the last error. Each person can turn individual e-mails off under **Settings → My notifications**.
+
 ## 1. Create the Supabase project
 1. Create a project at supabase.com (region close to India, e.g. Mumbai `ap-south-1`).
 2. **Database → Extensions:** enable `pg_cron` *before* running migrations (the due/overdue reminder job schedules itself if it's present).
@@ -29,6 +46,7 @@ supabase login
 supabase link --project-ref <your-project-ref>
 supabase db push               # applies supabase/migrations in order
 supabase functions deploy send-invite
+supabase functions deploy send-emails
 ```
 Do **not** run anything in `supabase/tests/` against the hosted project — `00_supabase_shim.sql` is for local plain-Postgres testing only.
 

@@ -7,13 +7,13 @@ import { createInvitation, inviteToast, unwrap } from '@/lib/query'
 import { fmtDate, titleCase } from '@/lib/utils'
 import { nameOf, useDepartments, useLeaveTypes, usePeople, useRoles, useTaskStatuses } from '@/lib/lookups'
 import type { Permission } from '@/lib/permissions'
-import type { Holiday, StatusCategory } from '@/lib/types'
+import type { EmailSettings, Holiday, StatusCategory } from '@/lib/types'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { DataTable } from '@/components/DataTable'
 import { NOTIFICATION_TYPES } from '@/features/notifications/NotificationsPage'
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState, Field, Input, PageHeader, Select, Tabs, Textarea } from '@/components/ui'
 
-type Tab = 'org' | 'roles' | 'invites' | 'departments' | 'holidays' | 'leave' | 'schedule' | 'statuses' | 'announcements' | 'notifications' | 'audit'
+type Tab = 'org' | 'email' | 'roles' | 'invites' | 'departments' | 'holidays' | 'leave' | 'schedule' | 'statuses' | 'announcements' | 'notifications' | 'audit'
 
 function OrgSettings() {
   const { org, refresh, can } = useAuth()
@@ -28,6 +28,54 @@ function OrgSettings() {
       <Field label="Employee ID prefix" hint="Applies to new employees">{(p) => <Input {...p} value={prefix} maxLength={8} disabled={disabled} onChange={(e) => setPrefix(e.target.value)} />}</Field>
       <div className="sm:col-span-2"><Button disabled={disabled} loading={save.isPending} onClick={() => save.mutate()}>Save</Button></div>
     </CardBody></Card>
+  )
+}
+
+function EmailSettingsCard() {
+  const { org } = useAuth()
+  const qc = useQueryClient()
+  const q = useQuery({ queryKey: ['email_settings'], queryFn: async () => unwrap(await supabase.from('email_settings').select('*').maybeSingle()) as EmailSettings | null })
+  const stats = useQuery({ queryKey: ['email_settings', 'stats'], refetchInterval: 30_000,
+    queryFn: async () => unwrap(await supabase.rpc('email_queue_stats')) as { queued: number; sent_7d: number; failed: number; last_sent_at: string | null } | null })
+  const failures = useQuery({ queryKey: ['email_settings', 'failures'], queryFn: async () => unwrap(await supabase.from('email_outbox').select('id, to_email, subject, last_error, attempts, created_at')
+    .not('last_error', 'is', null).neq('status', 'sent').order('created_at', { ascending: false }).limit(10)) as { id: string; to_email: string; subject: string; last_error: string; attempts: number; created_at: string }[] })
+  const [f, setF] = useState<Partial<EmailSettings> | null>(null)
+  const v = { enabled: false, app_url: window.location.origin, from_name: '', reply_to: '', send_notifications: true, send_invoices: true, ...(q.data ?? {}), ...(f ?? {}) }
+  const save = useMutation({
+    mutationFn: async () => unwrap(await supabase.from('email_settings').upsert({ org_id: org!.id, enabled: v.enabled, app_url: v.app_url?.trim().replace(/\/$/, '') || null,
+      from_name: v.from_name?.trim() || null, reply_to: v.reply_to?.trim() || null, send_notifications: v.send_notifications, send_invoices: v.send_invoices })),
+    onSuccess: () => { toast.success('E-mail settings saved'); setF(null); qc.invalidateQueries({ queryKey: ['email_settings'] }) },
+  })
+  const test = useMutation({ mutationFn: async () => unwrap(await supabase.rpc('send_test_email')),
+    onSuccess: () => { toast.success('Test e-mail queued. It arrives within a few minutes once the send-emails function is running.'); qc.invalidateQueries({ queryKey: ['email_settings'] }) } })
+  const set = (k: keyof EmailSettings, val: unknown) => setF({ ...(f ?? {}), [k]: val })
+  return (
+    <div className="space-y-6">
+      <Card><CardHeader title="E-mail delivery" description="Notifications, invoices, payment reminders and offer letters are e-mailed through the send-emails function (Resend). Nothing is sent while this is off." />
+        <CardBody className="grid max-w-2xl gap-4 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm font-medium sm:col-span-2"><input type="checkbox" checked={v.enabled} onChange={(e) => set('enabled', e.target.checked)} />Send e-mails</label>
+          <Field label="App address" hint="Used for links in e-mails" className="sm:col-span-2">{(p) => <Input {...p} value={v.app_url ?? ''} onChange={(e) => set('app_url', e.target.value)} />}</Field>
+          <Field label="Sender name">{(p) => <Input {...p} value={v.from_name ?? ''} placeholder={org?.name} onChange={(e) => set('from_name', e.target.value)} />}</Field>
+          <Field label="Reply-to address">{(p) => <Input {...p} type="email" value={v.reply_to ?? ''} onChange={(e) => set('reply_to', e.target.value)} />}</Field>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={v.send_notifications} onChange={(e) => set('send_notifications', e.target.checked)} />Notifications to staff</label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={v.send_invoices} onChange={(e) => set('send_invoices', e.target.checked)} />Invoices & payment reminders to clients</label>
+          <div className="flex gap-2 sm:col-span-2"><Button disabled={!f} loading={save.isPending} onClick={() => save.mutate()}>Save</Button>
+            <Button variant="outline" disabled={!q.data?.enabled} loading={test.isPending} onClick={() => test.mutate()}>Send me a test e-mail</Button></div>
+        </CardBody></Card>
+      {stats.data && <Card><CardHeader title="Delivery status" description={stats.data.last_sent_at ? `Last e-mail sent ${fmtDate(stats.data.last_sent_at, 'dd MMM, hh:mm a')}` : 'Nothing sent yet.'} />
+        <CardBody className="grid grid-cols-3 gap-3 text-center text-sm">
+          <div><p className="text-2xl font-semibold">{stats.data.queued}</p><p className="text-muted-foreground">Waiting</p></div>
+          <div><p className="text-2xl font-semibold">{stats.data.sent_7d}</p><p className="text-muted-foreground">Sent (7 days)</p></div>
+          <div><p className="text-2xl font-semibold">{stats.data.failed}</p><p className="text-muted-foreground">Failed</p></div>
+        </CardBody>
+        {Boolean(stats.data.queued) && !stats.data.last_sent_at && <CardBody className="border-t text-sm text-amber-700">E-mails are waiting but none have been sent yet. Deploy the send-emails function and schedule it (see docs/SETUP.md, “E-mail”).</CardBody>}
+        {Boolean(failures.data?.length) && <DataTable rows={failures.data} columns={[
+          { key: 't', header: 'To', render: (r) => <span><span className="block">{r.to_email}</span><span className="text-xs text-muted-foreground">{r.subject}</span></span> },
+          { key: 'e', header: 'Last error', render: (r) => <span className="text-xs text-destructive">{r.last_error}</span> },
+          { key: 'a', header: 'Attempts', render: (r) => r.attempts },
+        ]} />}
+      </Card>}
+    </div>
   )
 }
 
@@ -232,7 +280,7 @@ function NotificationPrefs() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notification_preferences'] }) })
   const pref = (type: string) => q.data?.find((p) => p.type === type) ?? { type, in_app: true, email: true }
   return (
-    <Card><CardHeader title="My notification preferences" description="Email delivery activates once an email provider is configured." />
+    <Card><CardHeader title="My notification preferences" description="E-mails are sent only when your administrator has turned e-mail on." />
       <DataTable rows={Object.entries(NOTIFICATION_TYPES).map(([type, label]) => ({ id: type, type, label }))} columns={[
         { key: 'l', header: 'Event', render: (r) => r.label },
         { key: 'i', header: 'In-app', render: (r) => <input type="checkbox" aria-label={`${r.label} in-app`} checked={pref(r.type).in_app} onChange={(e) => save.mutate({ ...pref(r.type), in_app: e.target.checked })} /> },
@@ -255,7 +303,7 @@ function AuditLog() {
   return (
     <Card><CardHeader title="Audit log" description="Latest 200 changes. Records cannot be edited or deleted by users."
       action={<Select aria-label="Table" className="w-56" value={table} onChange={(e) => setTable(e.target.value)}><option value="">All tables</option>
-        {['attendance_records', 'attendance_corrections', 'leave_requests', 'leave_balances', 'employee_profiles', 'salary_revisions', 'clients', 'contracts', 'projects', 'tasks', 'user_roles', 'role_permissions'].map((t) => <option key={t}>{t}</option>)}</Select>} />
+        {['attendance_records', 'attendance_corrections', 'leave_requests', 'leave_balances', 'employee_profiles', 'salary_revisions', 'clients', 'contracts', 'invoices', 'payments', 'billing_settings', 'payroll_runs', 'payslips', 'candidates', 'offers', 'projects', 'tasks', 'user_roles', 'role_permissions', 'email_settings'].map((t) => <option key={t}>{t}</option>)}</Select>} />
       <DataTable rows={q.data?.map((r) => ({ ...r, id: String(r.id) }))} loading={q.isLoading} columns={[
         { key: 't', header: 'When', render: (r) => fmtDate(r.created_at, 'dd MMM yyyy, hh:mm:ss a') },
         { key: 'a', header: 'Who', render: (r) => r.actor_id ? nameOf(people, r.actor_id) : 'System' },
@@ -271,6 +319,7 @@ export default function SettingsPage() {
   const { can } = useAuth()
   const all: { value: Tab; label: string; show: boolean }[] = [
     { value: 'org', label: 'Organization', show: true },
+    { value: 'email', label: 'E-mail', show: can('org.manage') },
     { value: 'roles', label: 'Roles & permissions', show: can(['roles.manage', 'users.manage'], 'any') },
     { value: 'invites', label: 'Invitations', show: can('users.manage') },
     { value: 'departments', label: 'Departments', show: true },
@@ -289,6 +338,7 @@ export default function SettingsPage() {
       <PageHeader title="Settings" />
       <Tabs tabs={tabs} value={tab} onChange={setTab} />
       {tab === 'org' && <OrgSettings />}
+      {tab === 'email' && <EmailSettingsCard />}
       {tab === 'roles' && <RolesMatrix />}
       {tab === 'invites' && <Invitations />}
       {tab === 'departments' && <Departments />}

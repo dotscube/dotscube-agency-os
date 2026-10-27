@@ -1,6 +1,31 @@
 # Implementation status — 27 Oct 2026
 
-Scope delivered: **Phase 1 (plan), Phase 2 (foundation), Phase 3 (MVP) and Phase 4 (agency operations)**. Phases 5–6 are not started.
+Scope delivered: **Phase 1 (plan), Phase 2 (foundation), Phase 3 (MVP), Phase 4 (agency operations) and Phase 5 (finance & people)**. Phase 6 is not started.
+
+## Phase 5 — finance & people (27 Oct 2026)
+
+| Feature | Status | Notes |
+|---|---|---|
+| GST invoices | ✅ Done | Drafts from a client contract (monthly fee + optional ad-spend lines per platform from imported campaign data, one invoice per contract per month) or blank. Line kinds keep **management fee, ad spend and other** in separate subtotals; ad spend defaults to 0% GST (pure agent), configurable. CGST+SGST vs IGST from seller and client state (GSTIN), SAC codes, rupee round-off, amount in words, printable/PDF. Numbers only on issue, per financial year (`INV/2026-27/0001`), consecutive, never reused; issued invoices are immutable (cancel with reason keeps the number). |
+| Payments | ✅ Done | Record part/full payments with TDS deducted by the client, method and reference (same reference can't be entered twice), no overpayment, no future dates; status draft → issued → part paid → paid; removing a payment reopens the balance. |
+| Collections & reminders | ✅ Done | Outstanding, overdue, invoiced/collected this month (fees vs ad spend), ageing buckets, top debtors; dashboard card. Daily job (`generate_invoice_reminders`, pg_cron 04:05 UTC) notifies the account manager and accounts 3 days before, on, and 7/14/30 days after the due date, and e-mails the client's billing address — never twice for the same stage. |
+| Client portal | ✅ Done | Clients see their own issued invoices, lines and payments (never drafts) and an "amount due" card. |
+| Payroll | ✅ Done | Monthly run from the latest salary revision, joining/exit dates and approved leave without pay (optionally also unexplained absences): calendar-day proration rounded to the rupee. Per-payslip adjustments (bonus, recovery, TDS…), recalculation keeps them. Draft → finalized (employees notified, payslips visible to them) → paid; reopen until paid. Employees without a salary structure are listed, not silently skipped. Payroll register and bank transfer sheet (CSV); printable payslips with PAN/UAN/bank. PAN, UAN and salary bank account added to private employee details. **PF/ESI/PT/TDS are not auto-calculated** — enter them as components or adjustments and have them checked by your accountant. |
+| Recruitment | ✅ Done | Openings (department, type, budget, hiring manager, positions), candidate pipeline board, résumé upload (private storage), interviews with interviewer notification and structured feedback (rating, recommendation), offers with a letter template (draft → sent → accepted/declined/withdrawn), **Hire** creates the employee (onboarding) with designation, reporting manager, joining date and a first salary revision; the opening is marked filled. Hiring managers see their openings; interviewers see only their candidates; CTC and offers need a recruitment permission. |
+| E-mail delivery | ✅ Built, needs a provider | Outbox in the database (idempotent, retries with back-off, purge after 90 days) fed by every notification (respecting each person's e-mail preference), invoices, reminders and offer letters. `send-emails` Edge Function sends through Resend. **Off until you configure Resend and turn it on in Settings → E-mail** (see docs/SETUP.md). |
+
+New permissions (added to existing organizations by `upgrade_phase5.sql`, all marked sensitive): `invoices.view`, `invoices.manage`, `payroll.view`, `payroll.run`, `recruitment.view`, `recruitment.manage`. Defaults: Owner/Super Admin all; HR payroll + recruitment; Accounts invoices + payroll view.
+
+### How Phase 5 was verified
+| Check | Result |
+|---|---|
+| Database tests (`npm run test:db`) | **417 / 417 pass** (251 earlier + 166 Phase 5): GST maths (intra/inter, 0% ad spend), numbering and immutability, cancellation, payments/TDS/duplicates/overpayment, client and cross-org isolation, reminder idempotency; payroll proration (LWP, mid-month joiner, absences), adjustments, lifecycle and payslip visibility; recruitment stage rules, interviewer-only feedback, offer transitions, hire → employee + salary; e-mail queue, opt-out, claim/complete/retry, résumé storage paths. |
+| Unit tests (`npm test`) | **50 / 50 pass** (+14: invoice totals, financial year, amount in words, CTC split, bank sheet, offer letter, navigation). |
+| Type check + production build | **pass** |
+| Browser end-to-end (`scripts/e2e/phase5-e2e.mjs`) | **66 / 66 pass**: the built app in Chromium against the real test database through `scripts/e2e/sql-rest.mjs` (RLS, triggers and functions run for real) as Accounts, Client, HR, an employee, an interviewer and the Owner, plus phone width: create invoice from contract → add line → issue → record payment; client portal; run payroll → adjust → finalize → employee opens payslip; opening → candidate → interview → offer letter → sent; e-mail settings; no runtime or server errors; no horizontal scroll on phones. |
+| Upgrade path | `upgrade_phase5.sql` applied to a Phase 4 database with an existing organization (permissions, billing and e-mail settings backfilled); `setup.sql` applied to an empty database. |
+
+**Needs checking on the live project:** résumé upload to Storage, the `send-emails` function with your Resend key, and the reminder cron job.
 
 ## Phase 4 — agency operations (27 Oct 2026)
 
@@ -51,7 +76,7 @@ Bugs found and fixed by this testing: RLS blocked "create and return" inserts fr
 | E Clients | ✅ Done | Profile, contacts, services, billing & contracts (restricted), notes, onboarding checklist (auto), portal invites, renewal reminders. |
 | F Projects | ✅ Mostly | Sub-projects, owner, team, milestones, budget, computed progress, board/list views, client sharing. **Calendar/timeline views, project templates, recurring projects: Phase 4.** |
 | G Tasks | ✅ Mostly | Assignees, reviewer, subtasks, dependencies, comments, @mentions, attachments, configurable statuses, filters, Kanban. **Time tracking/actual hours and recurrence: Phase 4.** Department filter not yet added. |
-| N Notifications | ✅ In-app done | Assignment, review, mentions, client feedback, leave/correction requests & decisions, due/overdue, renewals. **E-mail delivery not built** (needs a provider). |
+| N Notifications | ✅ Done | In-app for assignment, review, mentions, client feedback, leave/correction requests & decisions, due/overdue, renewals, timesheets, content, invoices, payslips, interviews. E-mail delivery via the outbox + `send-emails` (Phase 5; needs Resend). |
 | Global search | ✅ Done | Tasks, projects, clients, employees — RLS-scoped. |
 
 ## Not yet verified on a live Supabase project
@@ -68,8 +93,5 @@ These parts depend on Supabase services that couldn't run in this environment. T
 - Rate limiting relies on Supabase Auth's built-in limits; no custom limits on RPCs yet.
 - Main JS bundle is ~690 kB (≈200 kB gzipped); route-level code splitting is in place, vendor splitting can come later.
 
-## Next milestone (Phase 5 — finance & people)
-1. Invoices and payments (GST, management fee vs ad spend shown separately, payment reminders).
-2. Payroll run from salary structures, attendance and leave (payslips).
-3. Recruitment pipeline (openings, candidates, interviews, offer letters).
-4. Email delivery for notifications (provider such as Resend/SMTP).
+## Next milestone (Phase 6)
+To be planned: performance reviews/appraisals, statutory payroll rules (PF/ESI/PT/TDS) validated with your accountant, recurring invoices from contracts, a public careers page, and reporting/exports across modules.

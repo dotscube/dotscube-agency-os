@@ -47,6 +47,11 @@ const privateSchema = z.object({
   personal_email: z.string().email().optional().or(z.literal('')), personal_phone: z.string().max(20).optional(), date_of_birth: z.string().optional(),
   address: z.string().max(500).optional(), emergency_contact_name: z.string().max(120).optional(), emergency_contact_relation: z.string().max(40).optional(),
   emergency_contact_phone: z.string().max(20).optional(),
+  pan_number: z.string().trim().toUpperCase().regex(/^([A-Z]{5}[0-9]{4}[A-Z])?$/, 'PAN looks like ABCDE1234F').optional(),
+  uan_number: z.string().trim().regex(/^([0-9]{12})?$/, 'UAN is 12 digits').optional(),
+  bank_name: z.string().max(80).optional(),
+  bank_account_number: z.string().trim().regex(/^([0-9]{6,20})?$/, 'Digits only').optional(),
+  bank_ifsc: z.string().trim().toUpperCase().regex(/^([A-Z]{4}0[A-Z0-9]{6})?$/, 'IFSC looks like HDFC0001234').optional(),
 })
 
 function PrivateDetails({ emp, editable }: { emp: Employee; editable: boolean }) {
@@ -77,6 +82,11 @@ function PrivateDetails({ emp, editable }: { emp: Employee; editable: boolean })
               <Field key={k} label={titleCase(k)} error={form.formState.errors[k]?.message}>{(p) => <Input type={k === 'date_of_birth' ? 'date' : 'text'} {...p} {...form.register(k)} />}</Field>
             ))}
             <Field label="Address" className="sm:col-span-2">{(p) => <Textarea {...p} {...form.register('address')} />}</Field>
+            <p className="text-sm font-medium sm:col-span-2">For payslips and salary transfers</p>
+            {(['pan_number', 'uan_number', 'bank_name', 'bank_account_number', 'bank_ifsc'] as const).map((k) => (
+              <Field key={k} label={{ pan_number: 'PAN', uan_number: 'UAN (PF)', bank_name: 'Bank', bank_account_number: 'Bank account number', bank_ifsc: 'IFSC' }[k]}
+                error={form.formState.errors[k]?.message}>{(p) => <Input {...p} {...form.register(k)} />}</Field>
+            ))}
             <div className="flex justify-end gap-2 sm:col-span-2"><Button type="button" variant="outline" onClick={() => setEditing(false)}>Cancel</Button><Button type="submit" loading={form.formState.isSubmitting}>Save</Button></div>
           </form>
         ) : !d ? <EmptyState title="No private details recorded" /> : (
@@ -85,6 +95,8 @@ function PrivateDetails({ emp, editable }: { emp: Employee; editable: boolean })
             { label: 'Date of birth', value: fmtDate(d.date_of_birth) }, { label: 'Address', value: d.address },
             { label: 'Emergency contact', value: d.emergency_contact_name && `${d.emergency_contact_name}${d.emergency_contact_relation ? ` (${d.emergency_contact_relation})` : ''}` },
             { label: 'Emergency phone', value: d.emergency_contact_phone },
+            { label: 'PAN', value: d.pan_number }, { label: 'UAN', value: d.uan_number },
+            { label: 'Salary account', value: d.bank_account_number && `${d.bank_name ?? 'Bank'} •••• ${d.bank_account_number.slice(-4)}${d.bank_ifsc ? ` · ${d.bank_ifsc}` : ''}` },
           ]} />
         )}
       </CardBody>

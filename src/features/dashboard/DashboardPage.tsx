@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { AlertTriangle, Building2, CalendarClock, CalendarDays, CheckSquare, Clock, Eye, FolderKanban, Hourglass, ListChecks, UserCheck, Users } from 'lucide-react'
+import { AlertTriangle, Briefcase, Building2, IndianRupee, Wallet, CalendarClock, CalendarDays, CheckSquare, Clock, Eye, FolderKanban, Hourglass, ListChecks, UserCheck, Users } from 'lucide-react'
 import { serviceLabel } from '@/lib/types'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { dashboardKinds, type DashboardKind } from '@/lib/permissions'
@@ -10,7 +10,8 @@ import { supabase } from '@/lib/supabase'
 import { unwrap } from '@/lib/query'
 import { friendlyError } from '@/lib/errors'
 import { fmtDate } from '@/lib/utils'
-import type { Announcement, DashboardMetrics, LeaveBalance, ProjectOverview } from '@/lib/types'
+import type { Announcement, DashboardMetrics, FinanceSummary, LeaveBalance, OpeningPipeline, PayrollRun, ProjectOverview } from '@/lib/types'
+import { fmtMoney } from '@/lib/utils'
 import { useLeaveTypes } from '@/lib/lookups'
 import { Card, CardBody, CardHeader, EmptyState, ErrorState, PageHeader, Skeleton, StatusBadge, Tabs } from '@/components/ui'
 import { TodayAttendanceCard } from '@/features/attendance/TodayAttendanceCard'
@@ -131,10 +132,75 @@ function ClientOverview() {
   )
 }
 
+function Money({ label, value, to, tone, hint }: { label: string; value: number | undefined; to: string; tone?: 'bad'; hint?: string }) {
+  return (
+    <Link to={to} className="rounded-lg border bg-card p-4 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/30">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className={`mt-2 text-2xl font-semibold tabular-nums ${tone === 'bad' && value ? 'text-destructive' : ''}`}>{value == null ? <Skeleton className="h-7 w-20" /> : fmtMoney(value)}</p>
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </Link>
+  )
+}
+
+/** Billing & collections (needs an invoices permission; numbers are RLS-scoped). */
+function FinanceCards() {
+  const { data: f } = useQuery({ queryKey: ['invoices', 'summary'], queryFn: async () => unwrap(await supabase.rpc('get_finance_summary')) as FinanceSummary })
+  return (
+    <Card><CardHeader title="Billing & collections" action={<Link to="/invoices" className="text-sm text-primary hover:underline">Invoices →</Link>} />
+      <CardBody><Grid>
+        <Money label="Outstanding" value={f?.outstanding} to="/invoices" hint={f ? `${f.open_count} unpaid invoice(s)` : undefined} />
+        <Money label="Overdue" value={f?.overdue} to="/invoices" tone="bad" hint={f ? `${f.overdue_count} invoice(s)` : undefined} />
+        <Money label="Invoiced this month" value={f?.invoiced_this_month} to="/invoices" hint={f ? `Fees ${fmtMoney(f.fees_this_month)}` : undefined} />
+        <Money label="Collected this month" value={f?.collected_this_month} to="/invoices" />
+      </Grid></CardBody></Card>
+  )
+}
+
+/** Latest payroll run and open positions for HR. */
+function PeopleOps() {
+  const { can } = useAuth()
+  const payroll = can(['payroll.view', 'payroll.run'], 'any'), hiring = can(['recruitment.view', 'recruitment.manage'], 'any')
+  const run = useQuery({ queryKey: ['payroll', 'latest'], enabled: payroll,
+    queryFn: async () => (await supabase.from('payroll_runs').select('*').order('period_month', { ascending: false }).limit(1).maybeSingle()).data as PayrollRun | null })
+  const open = useQuery({ queryKey: ['recruitment', 'open-count'], enabled: hiring,
+    queryFn: async () => unwrap(await supabase.from('opening_pipeline').select('id, positions, hired, active, interview, offer').eq('status', 'open')) as OpeningPipeline[] })
+  if (!payroll && !hiring) return null
+  const r = run.data
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      {payroll && <Link to={r ? `/payroll?run=${r.id}` : '/payroll'} className="rounded-lg border bg-card p-4 shadow-sm hover:border-primary/40">
+        <p className="flex items-center justify-between text-sm text-muted-foreground">Payroll<Wallet className="size-4" /></p>
+        {r ? <><p className="mt-2 text-lg font-semibold">{fmtDate(r.period_month, 'MMMM yyyy')} · <StatusBadge value={r.status} /></p>
+          <p className="text-xs text-muted-foreground">{r.employees_count} payslips · net {fmtMoney(r.net_total)}</p></>
+          : <p className="mt-2 text-sm">No payroll run yet</p>}
+      </Link>}
+      {hiring && <Link to="/recruitment" className="rounded-lg border bg-card p-4 shadow-sm hover:border-primary/40">
+        <p className="flex items-center justify-between text-sm text-muted-foreground">Hiring<Briefcase className="size-4" /></p>
+        <p className="mt-2 text-lg font-semibold">{open.data ? `${open.data.reduce((a, o) => a + Math.max(0, o.positions - Number(o.hired)), 0)} open position(s)` : '…'}</p>
+        <p className="text-xs text-muted-foreground">{open.data ? `${open.data.reduce((a, o) => a + Number(o.active), 0)} active candidates · ${open.data.reduce((a, o) => a + Number(o.interview), 0)} interviewing · ${open.data.reduce((a, o) => a + Number(o.offer), 0)} at offer` : ''}</p>
+      </Link>}
+    </div>
+  )
+}
+
+/** Client portal: what they owe, if anything. */
+function ClientDues() {
+  const { data: f } = useQuery({ queryKey: ['invoices', 'summary'], queryFn: async () => unwrap(await supabase.rpc('get_finance_summary')) as FinanceSummary })
+  if (!f || !Number(f.outstanding)) return null
+  return (
+    <Link to="/invoices" className="mb-4 flex items-center justify-between gap-3 rounded-lg border bg-card p-4 shadow-sm hover:border-primary/40">
+      <span className="flex items-center gap-3"><IndianRupee className="size-5 text-muted-foreground" />
+        <span><span className="block font-medium">{fmtMoney(f.outstanding)} due</span>
+          <span className="text-sm text-muted-foreground">{f.open_count} unpaid invoice(s){f.overdue_count ? ` · ${f.overdue_count} overdue` : ''}</span></span></span>
+      <span className="text-sm text-primary">View invoices →</span>
+    </Link>
+  )
+}
+
 const LABELS: Record<DashboardKind, string> = { admin: 'Agency', hr: 'HR', manager: 'Projects', employee: 'My work', client: 'Overview' }
 
 export default function DashboardPage() {
-  const { perms, audience, profile, employee } = useAuth()
+  const { perms, audience, profile, employee, can } = useAuth()
   const kinds = dashboardKinds(perms, audience)
   const [kind, setKind] = useState<DashboardKind>(kinds[0]!)
   const { data: m, error, refetch } = useQuery({
@@ -143,7 +209,7 @@ export default function DashboardPage() {
   })
   const greeting = `Welcome${profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}`
 
-  if (audience === 'client') return <><PageHeader title={greeting} description="Progress on the work we're doing for you." /><ClientOverview /></>
+  if (audience === 'client') return <><PageHeader title={greeting} description="Progress on the work we're doing for you." /><ClientDues /><ClientOverview /></>
 
   return (
     <div className="space-y-6">
@@ -163,6 +229,8 @@ export default function DashboardPage() {
             <Stat label="Pending corrections" value={m?.pending_corrections} to="/attendance?tab=approvals" icon={<Clock />} tone="warn" />
             <Stat label="Renewals in 45 days" value={m?.upcoming_renewals} to="/clients?renewals=1" icon={<CalendarClock />} tone="warn" />
           </Grid>
+          {can(['invoices.view', 'invoices.manage'], 'any') && <FinanceCards />}
+          <PeopleOps />
           <div className="grid gap-4 lg:grid-cols-2">
             <Card><CardHeader title="Team workload" description="Open assigned tasks" /><CardBody>{m && <WorkloadChart data={m.team_workload} />}</CardBody></Card>
             <Card><CardHeader title="Tasks by status" /><CardBody>{m && <StatusChart data={m.tasks_by_status} />}</CardBody></Card>
@@ -181,6 +249,7 @@ export default function DashboardPage() {
           <Stat label="Probation reviews (30 days)" value={m?.probation_reviews_due} to="/employees?status=probation" icon={<ListChecks />} tone="warn" />
         </Grid>
       )}
+      {kind === 'hr' && <PeopleOps />}
 
       {kind === 'manager' && (
         <>

@@ -2,6 +2,7 @@
 # Regenerates the paste-into-SQL-Editor files from supabase/migrations (the source of truth).
 #   supabase/setup.sql              -> a brand-new Supabase project (all migrations)
 #   supabase/upgrade_phase4.sql     -> an existing Phase 1-3 project (only the Phase 4 migrations)
+#   supabase/upgrade_phase5.sql     -> an existing Phase 4 project (only the Phase 5 migrations)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 {
@@ -19,4 +20,13 @@ cd "$(dirname "$0")/.."
   for f in supabase/migrations/2026102700000[89]_*.sql supabase/migrations/2026102700001[01]_*.sql; do echo; echo "-- ===== $(basename "$f") ====="; cat "$f"; done
   echo; echo "commit;"
 } > supabase/upgrade_phase4.sql
-echo "wrote supabase/setup.sql and supabase/upgrade_phase4.sql"
+{
+  echo "-- Dotscube Agency OS: Phase 5 upgrade (e-mail delivery, GST invoices & payments, payroll, recruitment)."
+  echo "-- For a project that already ran upgrade_phase4.sql. Paste into Supabase > SQL Editor > New query > Run, ONCE."
+  echo "-- Existing organizations get the new permissions, billing settings and e-mail settings (off) automatically."
+  echo "-- Generated from supabase/migrations (the source of truth)."
+  echo "begin;"
+  for f in supabase/migrations/202610280000*.sql; do echo; echo "-- ===== $(basename "$f") ====="; cat "$f"; done
+  echo; echo "commit;"
+} > supabase/upgrade_phase5.sql
+echo "wrote supabase/setup.sql, supabase/upgrade_phase4.sql and supabase/upgrade_phase5.sql"

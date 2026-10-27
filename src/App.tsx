@@ -26,6 +26,13 @@ const Time = lazy(() => import('@/features/time/TimePage'))
 const Content = lazy(() => import('@/features/content/ContentPage'))
 const Campaigns = lazy(() => import('@/features/campaigns/CampaignsPage'))
 const Templates = lazy(() => import('@/features/projects/templates'))
+const Invoices = lazy(() => import('@/features/finance/InvoicesPage'))
+const InvoiceDetail = lazy(() => import('@/features/finance/InvoiceDetailPage'))
+const Payroll = lazy(() => import('@/features/payroll/PayrollPage'))
+const Payslip = lazy(() => import('@/features/payroll/PayslipPage'))
+const Recruitment = lazy(() => import('@/features/recruitment/RecruitmentPage'))
+const Opening = lazy(() => import('@/features/recruitment/OpeningPage'))
+const Candidate = lazy(() => import('@/features/recruitment/CandidatePage'))
 const Notifications = lazy(() => import('@/features/notifications/NotificationsPage'))
 const Settings = lazy(() => import('@/features/settings/SettingsPage'))
 
@@ -52,6 +59,13 @@ function CampaignsGuard({ children }: { children: ReactNode }) {
   const auth = useAuth()
   if (auth.audience === 'client') return <>{children}</>
   return <Guard internal anyOf={['campaigns.view', 'campaigns.manage']}>{children}</Guard>
+}
+
+/** Clients always see their own issued invoices; staff need an invoices permission. */
+function InvoicesGuard({ children }: { children: ReactNode }) {
+  const auth = useAuth()
+  if (auth.audience === 'client') return <>{children}</>
+  return <Guard internal anyOf={['invoices.view', 'invoices.manage']}>{children}</Guard>
 }
 
 function ConfigMissing() {
@@ -86,6 +100,13 @@ export default function App() {
               <Route path="content" element={page(<Content />)} />
               <Route path="campaigns" element={page(<CampaignsGuard><Campaigns /></CampaignsGuard>)} />
               <Route path="templates" element={page(<Guard internal anyOf={['projects.manage_templates']}><Templates /></Guard>)} />
+              <Route path="invoices" element={page(<InvoicesGuard><Invoices /></InvoicesGuard>)} />
+              <Route path="invoices/:id" element={page(<InvoicesGuard><InvoiceDetail /></InvoicesGuard>)} />
+              <Route path="payroll" element={page(<Guard internal><Payroll /></Guard>)} />
+              <Route path="payroll/payslips/:id" element={page(<Guard internal><Payslip /></Guard>)} />
+              <Route path="recruitment" element={page(<Guard internal><Recruitment /></Guard>)} />
+              <Route path="recruitment/openings/:id" element={page(<Guard internal><Opening /></Guard>)} />
+              <Route path="recruitment/candidates/:id" element={page(<Guard internal><Candidate /></Guard>)} />
               <Route path="clients" element={page(<Guard internal anyOf={['clients.view']}><Clients /></Guard>)} />
               <Route path="clients/:id" element={page(<Guard internal><ClientDetail /></Guard>)} />
               <Route path="employees" element={page(<Guard internal anyOf={['employees.view']}><Employees /></Guard>)} />
