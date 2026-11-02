@@ -4,6 +4,7 @@
 #   supabase/upgrade_phase4.sql     -> an existing Phase 1-3 project (only the Phase 4 migrations)
 #   supabase/upgrade_phase5.sql     -> an existing Phase 4 project (only the Phase 5 migrations)
 #   supabase/upgrade_platform.sql   -> an existing Phase 5 project (platform admin)
+#   supabase/upgrade_delete_agency.sql -> a project with platform admin (delete an agency)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 {
@@ -39,4 +40,12 @@ cd "$(dirname "$0")/.."
   for f in supabase/migrations/20261028000017_*.sql; do echo; echo "-- ===== $(basename "$f") ====="; cat "$f"; done
   echo; echo "commit;"
 } > supabase/upgrade_platform.sql
+{
+  echo "-- Dotscube Agency OS: delete an agency (platform admin)."
+  echo "-- For a project that already ran upgrade_platform.sql. Paste into Supabase > SQL Editor > New query > Run, ONCE."
+  echo "-- Generated from supabase/migrations (the source of truth)."
+  echo "begin;"
+  for f in supabase/migrations/20261102000018_*.sql; do echo; echo "-- ===== $(basename "$f") ====="; cat "$f"; done
+  echo; echo "commit;"
+} > supabase/upgrade_delete_agency.sql
 echo "wrote supabase/setup.sql and the upgrade_*.sql files"
