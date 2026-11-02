@@ -27,6 +27,9 @@ function AgencyDialog({ a, onClose }: { a: PlatformAgency; onClose: () => void }
     onSuccess: () => { toast.success('Agency updated'); inv() } })
   const status = useMutation({ mutationFn: async (s: 'active' | 'suspended') => unwrap(await supabase.rpc('platform_set_agency_status', { p_org: a.id, p_status: s, p_reason: reason || null })),
     onSuccess: (_, s) => { toast.success(s === 'suspended' ? `${a.name} suspended` : `${a.name} reactivated`); inv(); onClose() } })
+  const [confirmName, setConfirmName] = useState('')
+  const remove = useMutation({ mutationFn: async () => unwrap(await supabase.rpc('platform_delete_agency', { p_org: a.id, p_confirm: confirmName })),
+    onSuccess: () => { toast.success(`${a.name} and all its data were deleted`); onClose(); inv() } })
   return (
     <Dialog open onClose={onClose} wide title={a.name} description={`${a.founder ? `Founded by ${a.founder.name || a.founder.email} (${a.founder.email}) · ` : ''}created ${fmtDate(a.created_at)}`}>
       <div className="space-y-5 text-sm">
@@ -60,6 +63,15 @@ function AgencyDialog({ a, onClose }: { a: PlatformAgency; onClose: () => void }
             <Button loading={status.isPending} onClick={() => status.mutate('active')}><Play />Reactivate</Button>
           </>}
         </div>
+        {!a.is_platform_home && <div className="rounded-md border border-destructive/40 p-4">
+          <p className="mb-2 font-medium text-destructive">Delete this agency permanently</p>
+          {a.status === 'active' ? <p className="text-muted-foreground">Suspend the agency first. Once it is suspended you can delete it here.</p> : <>
+            <p className="mb-3 text-muted-foreground">Deletes all of its clients, projects, tasks, employees, invoices and payroll, and the logins of
+              its {Number(a.staff_users) + Number(a.client_users)} user(s). This can't be undone. Type <span className="font-medium text-foreground">{a.name}</span> to confirm.</p>
+            <div className="flex flex-col gap-2 sm:flex-row"><Input aria-label="Type the agency name to confirm" placeholder={a.name} value={confirmName} onChange={(e) => setConfirmName(e.target.value)} />
+              <Button variant="destructive" disabled={confirmName.trim().toLowerCase() !== a.name.trim().toLowerCase()} loading={remove.isPending} onClick={() => remove.mutate()}><Trash2 />Delete agency</Button></div>
+          </>}
+        </div>}
       </div>
     </Dialog>
   )
